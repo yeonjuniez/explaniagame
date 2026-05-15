@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explania Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a1628;min-height:100vh;overflow-x:hidden}
+  .screen{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+  .screen.active{display:flex}
+  .bg{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#0a1628 0%,#0f2347 50%,#0a1628 100%);z-index:-2}
+  .stars{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}
+  .star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+  @keyframes twinkle{0%{opacity:.2;transform:scale(1)}100%{opacity:.9;transform:scale(1.2)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes slideIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  @keyframes correctAnim{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .title-wrap{text-align:center;animation:float 3s ease-in-out infinite}
+  .game-title{font-family:'Fredoka One',cursive;font-size:52px;background:linear-gradient(135deg,#4ade80,#22d3ee,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;filter:drop-shadow(0 0 30px #4ade8088)}
+  .game-sub{color:#94a3b8;font-size:13px;margin-top:4px;letter-spacing:2px;text-transform:uppercase}
+  .snake-deco{font-size:64px;margin-bottom:8px;display:block}
+  .btn{display:block;width:100%;max-width:320px;padding:15px 24px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:17px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.5px;margin:8px auto}
+  .btn-main{background:linear-gradient(135deg,#4ade80,#22c55e);color:#052e16;box-shadow:0 8px 24px #4ade8044}
+  .btn-main:hover{transform:translateY(-2px);box-shadow:0 12px 32px #4ade8066}
+  .btn-guide{background:rgba(255,255,255,.08);color:#e2e8f0;border:1.5px solid rgba(255,255,255,.2)}
+  .btn-guide:hover{background:rgba(255,255,255,.15);transform:translateY(-2px)}
+  .btn-back{background:rgba(255,255,255,.06);color:#94a3b8;font-size:14px;padding:10px 20px;border:1px solid rgba(255,255,255,.1)}
+  .btn-back:hover{background:rgba(255,255,255,.12)}
+  .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:20px;width:100%;max-width:380px;animation:slideIn .4s ease}
+  .panduan-title{font-family:'Fredoka One',cursive;font-size:26px;color:#4ade80;margin-bottom:16px;text-align:center}
+  .rule-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+  .rule-item:last-child{border-bottom:none}
+  .rule-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+  .rule-text{color:#cbd5e1;font-size:14px;line-height:1.6}
+  .rule-text strong{color:#f8fafc;font-weight:700}
+  .poin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+  .poin-card{background:rgba(255,255,255,.06);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.1)}
+  .poin-num{font-family:'Fredoka One',cursive;font-size:26px}
+  .poin-label{font-size:11px;color:#94a3b8;margin-top:2px}
+  #gameScreen{padding:12px}
+  .game-header{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:380px;margin-bottom:10px;padding:0 4px}
+  .score-box{background:rgba(255,255,255,.08);border-radius:12px;padding:8px 16px;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .score-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px}
+  .score-val{font-family:'Fredoka One',cursive;font-size:22px;color:#4ade80}
+  #canvas{border-radius:16px;display:block;border:2px solid rgba(255,255,255,.15)}
+  .dpad{display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:6px;margin-top:14px}
+  .dpad-btn{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);border-radius:14px;color:#e2e8f0;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+  .dpad-btn:active{background:rgba(74,222,128,.35);transform:scale(.88)}
+  .dpad-center{background:rgba(255,255,255,.04);cursor:default}
+  .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+  .modal-overlay.show{display:flex}
+  .modal{background:#0f2347;border:1.5px solid rgba(74,222,128,.3);border-radius:24px;padding:22px;width:100%;max-width:400px;animation:slideIn .3s ease}
+  .modal-badge{display:inline-block;background:rgba(74,222,128,.15);color:#4ade80;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:1px;margin-bottom:12px;text-transform:uppercase}
+  .modal-q{color:#f1f5f9;font-size:14px;font-weight:700;line-height:1.7;margin-bottom:16px;background:rgba(255,255,255,.05);border-radius:12px;padding:12px;border-left:3px solid #4ade80}
+  .opt-btn{display:block;width:100%;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);border-radius:12px;padding:12px 16px;color:#e2e8f0;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;text-align:left;cursor:pointer;margin-bottom:8px;transition:all .2s;line-height:1.5}
+  .opt-btn:hover:not(:disabled){background:rgba(74,222,128,.15);border-color:#4ade80;color:#f8fafc}
+  .opt-btn.correct{background:rgba(74,222,128,.25);border-color:#4ade80;color:#4ade80;animation:correctAnim .4s ease}
+  .opt-btn.wrong{background:rgba(239,68,68,.2);border-color:#ef4444;color:#fca5a5;animation:shake .3s ease}
+  .opt-btn:disabled{cursor:default}
+  .tries-row{display:flex;gap:6px;align-items:center;margin-bottom:12px}
+  .try-dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.2)}
+  .try-dot.used{background:#ef4444}
+  .tries-label{font-size:12px;color:#64748b;margin-right:4px}
+  .poin-feedback{text-align:center;padding:14px;background:rgba(74,222,128,.1);border-radius:12px;margin-top:8px;color:#4ade80;font-family:'Fredoka One',cursive;font-size:22px}
+  .feedback-sub{font-family:'Nunito',sans-serif;font-size:13px;color:#86efac;margin-top:4px;font-weight:600}
+  .result-icon{font-size:72px;text-align:center;margin-bottom:12px;animation:float 2s ease-in-out infinite}
+  .result-score{font-family:'Fredoka One',cursive;font-size:64px;background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1}
+  .result-label{color:#94a3b8;font-size:13px;text-align:center;margin:4px 0 20px;letter-spacing:1px;text-transform:uppercase}
+  .stat-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);color:#cbd5e1;font-size:14px}
+  .stat-row:last-child{border-bottom:none}
+  .stat-val{color:#f8fafc;font-weight:700}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="stars" id="starsContainer"></div>
+
+<!-- HOME -->
+<div class="screen active" id="homeScreen">
+  <div class="title-wrap">
+    <span class="snake-deco">🐍</span>
+    <div class="game-title">Explania<br>Game</div>
+    <div class="game-sub">Evaluasi Teks Eksplanasi</div>
+  </div>
+  <div style="margin-top:40px;width:100%;max-width:320px">
+    <button class="btn btn-main" onclick="startGame()">▶ Mulai Bermain</button>
+    <button class="btn btn-guide" onclick="showScreen('guideScreen')">📖 Panduan Bermain</button>
+  </div>
+  <div style="margin-top:28px;color:#334155;font-size:12px;letter-spacing:1px">Evaluasi Pembelajaran Bahasa Indonesia</div>
+</div>
+
+<!-- PANDUAN -->
+<div class="screen" id="guideScreen">
+  <div class="card" style="max-height:88vh;overflow-y:auto">
+    <div class="panduan-title">📖 Panduan Bermain</div>
+    <div class="rule-item">
+      <span class="rule-icon">🐍</span>
+      <div class="rule-text">Kendalikan ular menggunakan <strong>tombol arah</strong> di bawah layar untuk bergerak di lapangan hijau.</div>
+    </div>
+    <div class="rule-item">
+      <span class="rule-icon">🔄</span>
+      <div class="rule-text">Ular <strong>menembus dinding</strong> dan muncul dari sisi seberangnya — jadi tidak perlu khawatir nabrak!</div>
+    </div>
+    <div class="rule-item">
+      <span class="rule-icon">🍎</span>
+      <div class="rule-text">Makan <strong>apel merah</strong> yang muncul di lapangan. Setiap kali ular memakan apel, sebuah <strong>pertanyaan pilihan ganda</strong> akan muncul.</div>
+    </div>
+    <div class="rule-item">
+      <span class="rule-icon">❓</span>
+      <div class="rule-text">Jawab pertanyaan tentang <strong>Teks Eksplanasi</strong> dengan benar. Kamu punya maksimal <strong>4 kali percobaan</strong> per soal.</div>
+    </div>
+    <div style="margin:12px 0 4px">
+      <div style="color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⭐ Sistem Poin</div>
+      <div class="poin-grid">
+        <div class="poin-card"><div class="poin-num" style="color:#fbbf24">10</div><div class="poin-label">Benar Coba ke-1</div></div>
+        <div class="poin-card"><div class="poin-num" style="color:#a78bfa">9</div><div class="poin-label">Benar Coba ke-2</div></div>
+        <div class="poin-card"><div class="poin-num" style="color:#60a5fa">7</div><div class="poin-label">Benar Coba ke-3</div></div>
+        <div class="poin-card"><div class="poin-num" style="color:#94a3b8">4</div><div class="poin-label">Benar Coba ke-4</div></div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <span class="rule-icon">💀</span>
+      <div class="rule-text">Jangan tabrak <strong>tubuh ular sendiri</strong> — itu satu-satunya yang membuat game over!</div>
+    </div>
+    <div class="rule-item">
+      <span class="rule-icon">🏆</span>
+      <div class="rule-text">Game berakhir setelah <strong>15 soal</strong> terjawab. Kumpulkan poin sebanyak mungkin!</div>
+    </div>
+    <button class="btn btn-main" style="margin-top:16px" onclick="startGame()">▶ Mulai Sekarang</button>
+    <button class="btn btn-back" onclick="showScreen('homeScreen')">← Kembali</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="gameScreen">
+  <div class="game-header">
+    <div class="score-box"><div class="score-label">Skor</div><div class="score-val" id="scoreDisplay">0</div></div>
+    <div class="score-box"><div class="score-label">Soal</div><div class="score-val" id="qDisplay">0/15</div></div>
+    <div class="score-box"><div class="score-label">Panjang</div><div class="score-val" id="lenDisplay">3</div></div>
+  </div>
+  <canvas id="canvas" width="340" height="340"></canvas>
+  <div class="dpad">
+    <div></div>
+    <button class="dpad-btn" ontouchstart="setDir(0,-1)" onclick="setDir(0,-1)">▲</button>
+    <div></div>
+    <button class="dpad-btn" ontouchstart="setDir(-1,0)" onclick="setDir(-1,0)">◄</button>
+    <div class="dpad-btn dpad-center">●</div>
+    <button class="dpad-btn" ontouchstart="setDir(1,0)" onclick="setDir(1,0)">►</button>
+    <div></div>
+    <button class="dpad-btn" ontouchstart="setDir(0,1)" onclick="setDir(0,1)">▼</button>
+    <div></div>
+  </div>
+  <button class="btn btn-back" style="margin-top:10px;max-width:200px" onclick="quitGame()">✕ Keluar</button>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="resultScreen">
+  <div style="text-align:center;width:100%;max-width:360px">
+    <div class="result-icon" id="resultIcon">🏆</div>
+    <div class="result-score" id="finalScore">0</div>
+    <div class="result-label">Poin Total</div>
+    <div class="card" style="text-align:left">
+      <div id="resultStats"></div>
+    </div>
+    <div style="margin:16px 0" id="levelBadgeWrap"></div>
+    <button class="btn btn-main" onclick="startGame()">🔄 Main Lagi</button>
+    <button class="btn btn-back" onclick="showScreen('homeScreen')">🏠 Menu Utama</button>
+  </div>
+</div>
+
+<!-- QUIZ MODAL -->
+<div class="modal-overlay" id="quizModal">
+  <div class="modal">
+    <div class="modal-badge">📚 Teks Eksplanasi</div>
+    <div id="tryDotsRow" class="tries-row"></div>
+    <div class="modal-q" id="modalQ"></div>
+    <div id="optionsContainer"></div>
+    <div id="poinFeedback" style="display:none" class="poin-feedback">
+      <div id="poinNum"></div>
+      <div class="feedback-sub" id="feedbackSub"></div>
+      <button class="btn btn-main" style="margin-top:14px;padding:12px" onclick="closeQuiz()">Lanjut Main ➔</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Stars
+const sc=document.getElementById('starsContainer');
+for(let i=0;i<80;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2.5+1;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s`;
+  sc.appendChild(s);
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+const questions=[
+  {
+    q:"Akhir-akhir ini, istilah gempa bumi sering dibicarakan oleh banyak orang. Sepanjang abad 20 dan 21, gempa telah mengakibatkan banyak kematian dan kerugian material yang sangat besar. Oleh karena itu, dapat dikatakan bahwa tak pernah ada peristiwa alam lain dalam sejarah yang berpengaruh langsung pada manusia, selain gempa bumi.\n\nKata penunjuk waktu pada teks di atas adalah ...",
+    opts:["Oleh karena itu","Akhir-akhir ini","Mengakibatkan","Peristiwa"],
+    ans:1
+  },
+  {
+    q:"Urutan struktur teks eksplanasi yang tepat adalah ...",
+    opts:["Deretan penjelas, pernyataan umum, interpretasi","Pernyataan umum, deretan penjelas, interpretasi","Pernyataan umum, interpretasi, deretan penjelas","Interpretasi, deretan penjelas, pernyataan umum"],
+    ans:1
+  },
+  {
+    q:"Pada bagian apakah inti dari teks eksplanasi?",
+    opts:["Pernyataan umum","Sebab akibat","Aspek yang dilaporkan","Argumen"],
+    ans:1
+  },
+  {
+    q:"Tawuran adalah suatu proses saling menyerang atau berkelahi yang dilakukan secara berkelompok. Tawuran tidak mengenal usia — bisa remaja, dewasa, bahkan anak-anak di bawah umur.\n\nApa informasi yang disampaikan dalam paragraf tersebut?",
+    opts:["Tawuran dapat dilakukan oleh remaja, dewasa, bahkan anak-anak","Tawuran sering terjadi di kota-kota besar di Indonesia","Tawuran disebabkan perilaku remaja yang tidak patuh aturan","Tawuran pelajar dapat diatasi dengan kerja sama sekolah dan orang tua"],
+    ans:0
+  },
+  {
+    q:"Inti teks eksplanasi terdapat pada bagian ...",
+    opts:["Pernyataan umum","Sebab akibat","Aspek yang dilaporkan","Argumen"],
+    ans:1
+  },
+  {
+    q:"Teks eksplanasi adalah ...",
+    opts:["Teks yang berisi tentang penjelasan","Teks yang berisi tentang cara mengerjakan sesuatu","Teks yang berisi tentang pendapat","Teks yang menceritakan suatu kejadian"],
+    ans:0
+  },
+  {
+    q:"Langkah pertama yang harus diperhatikan dalam menyusun teks eksplanasi adalah ...",
+    opts:["Menentukan topik","Menyusun kerangka karangan","Mengembangkan kerangka karangan","Menentukan tujuan penulisan"],
+    ans:0
+  },
+  {
+    q:"Perhatikan kerangka karangan berikut:\n1) Proses terjadinya efek rumah kaca\n2) Penyebab terjadinya efek rumah kaca\n3) Akibat efek rumah kaca\n4) Solusi efek rumah kaca\n5) Definisi efek rumah kaca\n\nUrutan tepat kerangka karangan tersebut adalah ...",
+    opts:["5-1-2-3-4","5-1-2-4-3","5-2-1-3-4","5-2-1-4-3"],
+    ans:2
+  },
+  {
+    q:"Teks yang berisi penjelasan berupa proses terjadinya peristiwa alam, sosial atau budaya disebut ...",
+    opts:["Argumentasi","Eksplanasi","Prosedur","Cerita ulang"],
+    ans:1
+  },
+  {
+    q:"(1) Gempa yang terjadi dalam perut bumi akan mengakibatkan munculnya tekanan ke arah vertikal sehingga dasar lautan akan naik dan turun dalam rentang waktu yang singkat. (2) Hal ini kemudian akan memicu ketakseimbangan pada air lautan yang terdorong menjadi gelombang besar yang bergerak mencapai wilayah daratan.\n\nTeks eksplanasi di atas menjelaskan ...",
+    opts:["Penyebab gempa","Penyebab terjadinya tsunami","Akibat tsunami","Akibat gempa"],
+    ans:1
+  },
+  {
+    q:"(1) Gempa yang terjadi dalam perut bumi akan mengakibatkan munculnya tekanan ke arah vertikal sehingga dasar lautan akan naik dan turun dalam rentang waktu yang singkat. (2) Hal ini kemudian akan memicu ketakseimbangan pada air lautan...\n\nMaksud kata 'Hal ini' pada kalimat (2) adalah ...",
+    opts:["Naik dan turunnya dasar laut","Tekanan ke arah vertikal dalam perut bumi","Gempa","Tsunami"],
+    ans:0
+  },
+  {
+    q:"Di bawah ini yang termasuk struktur teks eksplanasi ialah ...",
+    opts:["Abstraksi","Tesis","Argumentasi","Pernyataan umum"],
+    ans:3
+  },
+  {
+    q:"Karakteristik atau ciri dari teks eksplanasi ialah ...",
+    opts:["Isinya memuat fakta","Muatannya didasarkan pada pendapat/opini","Adanya langkah prosedur","Memuat unsur kekonyolan"],
+    ans:0
+  },
+  {
+    q:"Teks eksplanasi ditulis untuk menjawab pertanyaan ...",
+    opts:["Apa dan siapa","Kapan dan di mana","Bagaimana dan mengapa","Berapa dan bagaimana"],
+    ans:2
+  },
+  {
+    q:"Berikut ini ciri-ciri teks eksplanasi, KECUALI ...",
+    opts:["Struktur terdiri atas pernyataan umum, deretan penjelas, dan penutup","Memuat informasi sesungguhnya/fakta","Memuat informasi yang bersifat keilmuan","Berisi langkah-langkah kerja"],
+    ans:3
+  },
+];
+
+const CELL=20,COLS=17,ROWS=17;
+let snake,dir,nextDir,apple,score,qs,usedQs,gameLoop,alive,paused;
+let canvas,ctx,curQ=null,tries=0;
+
+function initGame(){
+  canvas=document.getElementById('canvas');
+  ctx=canvas.getContext('2d');
+  snake=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];
+  dir={x:1,y:0};nextDir={x:1,y:0};
+  score=0;qs=0;usedQs=new Set();alive=true;paused=false;
+  placeApple();updateHUD();
+}
+
+function placeApple(){
+  let pos;
+  do{pos={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)}}
+  while(snake.some(s=>s.x===pos.x&&s.y===pos.y));
+  apple=pos;
+}
+
+function updateHUD(){
+  document.getElementById('scoreDisplay').textContent=score;
+  document.getElementById('qDisplay').textContent=qs+'/15';
+  document.getElementById('lenDisplay').textContent=snake.length;
+}
+
+function setDir(dx,dy){
+  if(paused||!alive)return;
+  if(dx===1&&dir.x===-1)return;if(dx===-1&&dir.x===1)return;
+  if(dy===1&&dir.y===-1)return;if(dy===-1&&dir.y===1)return;
+  nextDir={x:dx,y:dy};
+}
+
+function step(){
+  if(paused||!alive)return;
+  dir=nextDir;
+  // Wrap around walls instead of dying
+  let nx=(snake[0].x+dir.x+COLS)%COLS;
+  let ny=(snake[0].y+dir.y+ROWS)%ROWS;
+  const head={x:nx,y:ny};
+  // Only die if hitting own body (skip head itself)
+  if(snake.slice(1).some(s=>s.x===head.x&&s.y===head.y)){gameOver();return;}
+  snake.unshift(head);
+  if(head.x===apple.x&&head.y===apple.y){paused=true;showQuiz();updateHUD();}
+  else{snake.pop();draw();updateHUD();}
+}
+
+function draw(){
+  ctx.fillStyle='#1a2e1a';ctx.fillRect(0,0,340,340);
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=0.5;
+  for(let i=0;i<=COLS;i++){ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,340);ctx.stroke()}
+  for(let j=0;j<=ROWS;j++){ctx.beginPath();ctx.moveTo(0,j*CELL);ctx.lineTo(340,j*CELL);ctx.stroke()}
+  // Snake
+  snake.forEach((seg,i)=>{
+    const isHead=i===0;
+    const g=ctx.createRadialGradient(seg.x*CELL+CELL/2,seg.y*CELL+CELL/2,1,seg.x*CELL+CELL/2,seg.y*CELL+CELL/2,CELL/1.5);
+    if(isHead){g.addColorStop(0,'#6ee7b7');g.addColorStop(1,'#059669')}
+    else{g.addColorStop(0,'#34d399');g.addColorStop(1,'#047857')}
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.roundRect(seg.x*CELL+1,seg.y*CELL+1,CELL-2,CELL-2,isHead?6:4);ctx.fill();
+    if(isHead){
+      const ew=2;
+      const ex1=seg.x*CELL+(dir.x===1?13:(dir.x===-1?5:6));
+      const ey1=seg.y*CELL+(dir.y===1?13:(dir.y===-1?5:6));
+      const ex2=seg.x*CELL+(dir.x===1?13:(dir.x===-1?5:13));
+      const ey2=seg.y*CELL+(dir.y===1?13:(dir.y===-1?5:13));
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(ex1,ey1,ew,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(ex2,ey2,ew,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#1a2e1a';
+      ctx.beginPath();ctx.arc(ex1+dir.x*.6,ey1+dir.y*.6,1,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(ex2+dir.x*.6,ey2+dir.y*.6,1,0,Math.PI*2);ctx.fill();
+    }
+  });
+  // Apple
+  ctx.fillStyle='#ef4444';
+  ctx.beginPath();ctx.arc(apple.x*CELL+CELL/2,apple.y*CELL+CELL/2,CELL/2-2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fca5a5';
+  ctx.beginPath();ctx.arc(apple.x*CELL+CELL/2-3,apple.y*CELL+CELL/2-3,3,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#166534';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(apple.x*CELL+CELL/2,apple.y*CELL+2);ctx.lineTo(apple.x*CELL+CELL/2+3,apple.y*CELL-2);ctx.stroke();
+}
+
+function showQuiz(){
+  let available=[];
+  for(let i=0;i<questions.length;i++){if(!usedQs.has(i))available.push(i)}
+  if(available.length===0){usedQs.clear();available=questions.map((_,i)=>i)}
+  const idx=available[Math.floor(Math.random()*available.length)];
+  usedQs.add(idx);curQ=questions[idx];tries=0;
+  renderQuiz();
+  document.getElementById('quizModal').classList.add('show');
+}
+
+function renderQuiz(){
+  document.getElementById('modalQ').textContent=curQ.q;
+  document.getElementById('poinFeedback').style.display='none';
+  document.getElementById('optionsContainer').style.display='block';
+  const dr=document.getElementById('tryDotsRow');
+  dr.innerHTML='<span class="tries-label">Percobaan:</span>';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('div');
+    d.className='try-dot'+(i<tries?' used':'');dr.appendChild(d);
+  }
+  const oc=document.getElementById('optionsContainer');oc.innerHTML='';
+  ['A','B','C','D'].forEach((lbl,i)=>{
+    const b=document.createElement('button');b.className='opt-btn';
+    b.textContent=lbl+'. '+curQ.opts[i];b.onclick=()=>checkAnswer(i,b);
+    oc.appendChild(b);
+  });
+}
+
+function checkAnswer(idx,btn){
+  tries++;
+  const dots=document.getElementById('tryDotsRow').querySelectorAll('.try-dot');
+  if(dots[tries-1])dots[tries-1].classList.add('used');
+  const btns=document.querySelectorAll('.opt-btn');
+  if(idx===curQ.ans){
+    btn.classList.add('correct');btns.forEach(b=>b.disabled=true);
+    const pts=[10,9,7,4][tries-1]||4;
+    score+=pts;qs++;
+    document.getElementById('poinNum').textContent='+'+pts+' Poin! 🎉';
+    document.getElementById('feedbackSub').textContent=['Luar biasa! Jawaban sempurna! 🌟','Bagus! Hampir sempurna! 👍','Cukup baik! Terus semangat! 💪','Berhasil juga! Pelajari lebih lanjut! 📚'][tries-1];
+    document.getElementById('poinFeedback').style.display='block';
+    document.getElementById('optionsContainer').style.display='none';
+    if(qs>=15){setTimeout(()=>{closeQuiz();setTimeout(endGame,400)},1800)}
+  } else {
+    btn.classList.add('wrong');btn.disabled=true;
+    setTimeout(()=>btn.classList.remove('wrong'),400);
+    if(tries>=4){
+      btns.forEach(b=>b.disabled=true);btns[curQ.ans].classList.add('correct');
+      document.getElementById('poinNum').textContent='0 Poin 😔';
+      document.getElementById('feedbackSub').textContent='Jawaban yang benar sudah ditampilkan. Pelajari lagi ya!';
+      document.getElementById('poinFeedback').style.display='block';
+      document.getElementById('optionsContainer').style.display='none';
+      qs++;
+      if(qs>=15){setTimeout(()=>{closeQuiz();setTimeout(endGame,400)},1800)}
+    }
+  }
+  updateHUD();
+}
+
+function closeQuiz(){
+  document.getElementById('quizModal').classList.remove('show');
+  placeApple();paused=false;draw();
+}
+
+function gameOver(){
+  alive=false;clearInterval(gameLoop);
+  ctx.fillStyle='rgba(239,68,68,0.35)';ctx.fillRect(0,0,340,340);
+  ctx.fillStyle='#fff';ctx.font='bold 28px Nunito';ctx.textAlign='center';
+  ctx.fillText('GAME OVER! 💀',170,170);
+  setTimeout(endGame,1400);
+}
+
+function endGame(){
+  clearInterval(gameLoop);
+  document.getElementById('quizModal').classList.remove('show');
+  const pct=qs>0?Math.round(score/(qs*10)*100):0;
+  let icon,lv,lb;
+  if(pct>=90){icon='🌟';lv='Sangat Baik';lb='background:#7c3aed;color:#fde68a'}
+  else if(pct>=75){icon='🏆';lv='Baik';lb='background:#065f46;color:#a7f3d0'}
+  else if(pct>=60){icon='👍';lv='Cukup';lb='background:#1e3a5f;color:#bfdbfe'}
+  else{icon='📚';lv='Perlu Belajar Lagi';lb='background:#7f1d1d;color:#fecaca'}
+  document.getElementById('resultIcon').textContent=icon;
+  document.getElementById('finalScore').textContent=score;
+  document.getElementById('levelBadgeWrap').innerHTML=`<span style="${lb};padding:7px 22px;border-radius:20px;font-size:13px;font-weight:800;letter-spacing:1px;display:inline-block">${lv}</span>`;
+  document.getElementById('resultStats').innerHTML=`
+    <div class="stat-row"><span>Soal Dijawab</span><span class="stat-val">${qs} soal</span></div>
+    <div class="stat-row"><span>Total Poin</span><span class="stat-val" style="color:#4ade80">${score}</span></div>
+    <div class="stat-row"><span>Poin Maksimal</span><span class="stat-val">${qs*10}</span></div>
+    <div class="stat-row"><span>Persentase</span><span class="stat-val">${pct}%</span></div>
+    <div class="stat-row"><span>Panjang Ular</span><span class="stat-val">${snake.length}</span></div>
+  `;
+  showScreen('resultScreen');
+}
+
+function quitGame(){clearInterval(gameLoop);showScreen('homeScreen')}
+
+function startGame(){
+  showScreen('gameScreen');
+  setTimeout(()=>{
+    initGame();draw();clearInterval(gameLoop);
+    gameLoop=setInterval(step,260); // lebih lambat, cocok untuk SD
+  },100);
+}
+
+document.addEventListener('keydown',e=>{
+  const map={'ArrowUp':[0,-1],'ArrowDown':[0,1],'ArrowLeft':[-1,0],'ArrowRight':[1,0]};
+  if(map[e.key]){e.preventDefault();setDir(...map[e.key]);}
+});
+</script>
+</body>
+</html>
